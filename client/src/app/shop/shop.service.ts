@@ -8,6 +8,7 @@ import { Type } from '../shared/models/type';
 
 @Injectable({
   providedIn: 'root'
+  
 })
 export class ShopService {
   baseUrl = 'https://localhost:5001/api/'
