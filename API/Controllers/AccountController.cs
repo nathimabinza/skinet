@@ -109,6 +109,7 @@ namespace API.Controllers
 
             if (!results.Succeeded) return BadRequest(new ApiResponse(400));
 
+
             return new UserDto
             {
                 Email = user.Email,
