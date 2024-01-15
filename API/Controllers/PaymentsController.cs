@@ -10,13 +10,15 @@ namespace API.Controllers
 {
     public class PaymentsController : BaseApiController
     {
-        private const string WhSecret = "whsec_bd2f7f83e23e59476b09e7ff76281c66834d2b6fe94b0e8ce556b499f3e93d4c";
+        private readonly string _whSecret;
         private readonly IPaymentService _paymentService;
         private readonly ILogger<PaymentsController> _logger;
-        public PaymentsController(IPaymentService paymentService, ILogger<PaymentsController> logger)
+        public PaymentsController(IPaymentService paymentService, ILogger<PaymentsController> logger, 
+            IConfiguration config)
         {
             _logger = logger;
             _paymentService = paymentService;
+            _whSecret = config.GetSection("StripeSettings:WhSecret").Value;
         }
 
         [Authorize]
@@ -31,11 +33,12 @@ namespace API.Controllers
         }
 
         [HttpPost("webhook")]
-        public async Task<ActionResult> StripeWebhook() 
+        public async Task<ActionResult> StripeWebhook()
         {
             var json = await new StreamReader(Request.Body).ReadToEndAsync();
 
-            var stripeEvent = EventUtility.ConstructEvent(json, Request.Headers["Stripe-Signature"], WhSecret);
+            var stripeEvent = EventUtility.ConstructEvent(json,
+                Request.Headers["Stripe-Signature"], _whSecret);
 
             PaymentIntent intent;
             Order order;
@@ -43,17 +46,16 @@ namespace API.Controllers
             switch (stripeEvent.Type)
             {
                 case "payment_intent.succeeded":
-                    intent = (PaymentIntent) stripeEvent.Data.Object;
+                    intent = (PaymentIntent)stripeEvent.Data.Object;
                     _logger.LogInformation("Payment succeeded: ", intent.Id);
                     order = await _paymentService.UpdateOrderPaymentSucceeded(intent.Id);
                     _logger.LogInformation("Order updated to payment received: ", order.Id);
                     break;
                 case "payment_intent.payment_failed":
-                    intent = (PaymentIntent) stripeEvent.Data.Object;
+                    intent = (PaymentIntent)stripeEvent.Data.Object;
                     _logger.LogInformation("Payment failed: ", intent.Id);
                     order = await _paymentService.UpdateOrderPaymentFailed(intent.Id);
                     _logger.LogInformation("Order updated to payment failed: ", order.Id);
-                    // TODO: update the order with the new status
                     break;
             }
 

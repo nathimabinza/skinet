@@ -26,7 +26,7 @@ namespace API.Extensions
             });
             services.AddControllers();
            
-
+            services.AddSingleton<IResponseCacheService,  ResponseCacheService>();
             services.AddScoped<IBasketRepository, BasketRepository>();
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IPaymentService, PaymentService>();
